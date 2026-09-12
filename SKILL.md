@@ -238,12 +238,24 @@ Prose is mostly connective tissue. In a well-written chapter the load-bearing
 content is a handful of sentences per page; most paragraphs contribute one clause.
 Highlight fragments of a paragraph, not the paragraph.
 
-**Budget by genre** (char coverage, reported by `--dry-run`):
+**Budget by what the section is doing, not by the book.** A single ratio across a
+whole book is the wrong constraint: it starves definition-dense chapters and pads
+narrative ones. `--dry-run` reports per chunk, so read the number as a prompt to
+look, never as a target to hit.
 
-| Math / CS / hard science texts | 25-35% |
-| General textbook, survey | 15-25% |
-| Technical report, audit, paper | 20-30% |
-| Business / popular nonfiction | 8-15% |
+| Section is mostly… | Expect |
+|---|---|
+| definitions, notation, a chapter map | 35-45% — nearly every sentence introduces something |
+| theorems and derivations | 25-35% |
+| narrative, history, motivation | 5-15% |
+| worked examples | 10-20% — the method, not the arithmetic |
+| exercises, further reading | ~0% |
+
+Four rounds of blind review on one introduction chapter converged on ~43%: the
+chapter is a glossary and a map of the book, and every attempt to force it under
+35% removed something a reader then asked for. When a section is over its
+expected band, cut framing and repetition first; if what remains is still over,
+the section is genuinely dense and the number is right.
 
 If the user stated a purpose ("exam next week", "I only need chapters 4-7", "just
 enough to use the API"), weight toward it and say so in the summary: skip what
