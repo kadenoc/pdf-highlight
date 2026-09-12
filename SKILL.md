@@ -452,6 +452,20 @@ It rejects missing fields, page or line anchors that do not resolve, yes/no
 questions, `Look for` text too thin to grade against, and a `Covered by
 highlights: yes` claim where none of the cited lines are actually highlighted.
 
+### Three page numbers, and which one the reader gets
+
+A book has an extraction id (the PDF page index, what specs and quiz anchors use),
+the number the reader's **viewer** shows for the highlighted copy (one higher,
+because the legend page sits in front), and the book's own **printed** page number
+(often far lower — page 17 of this textbook prints as 11).
+
+Author anchors in extraction ids. Everything the reader sees translates: the
+digest headers read `*page 18 · book p.11*`, and `quiz.py key` renders
+`page 20 (book p.13) for memorization versus generalization`. Line ids are dropped
+from reader-facing output — they are authoring coordinates and mean nothing to
+someone looking at a page. `highlight.py` records the offset and the printed labels
+in `$W/output.json`; pass `--work $W` to `quiz.py key` so it can read them.
+
 ### Running
 
 The reader asks to run a chapter's quiz. Put **one question at a time**:

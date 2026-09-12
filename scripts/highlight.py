@@ -394,6 +394,26 @@ def main():
     meta = json.load(open(os.path.join(a.work, "meta.json")))
     lines = json.load(open(os.path.join(a.work, "lines.json")))["lines"]
 
+    # Three page numbers compete: the extraction index (what specs use), what the
+    # reader's viewer shows for the highlighted copy, and the book's own printed
+    # number. Everything the reader sees is given in the last two.
+    offset = 0 if a.no_legend else 1
+    labels = {}
+    try:
+        src = pymupdf.open(meta["pdf"])
+        for i in range(src.page_count):
+            labels[i + 1] = src[i].get_label()
+        src.close()
+    except Exception:
+        pass
+
+    def disp(pg):
+        out = f"page {pg + offset}"
+        lab = labels.get(pg)
+        if lab and lab != str(pg + offset):
+            out += f" · book p.{lab}"
+        return out
+
     errors, warnings = [], []
     sel = expand(parse_spec(a.spec), lines, errors, warnings)
     if errors:
@@ -492,7 +512,7 @@ def main():
                 buf.append(f"\n## {tocmap[pg]}")
                 headed.add(pg)
             if pg != last_page:
-                buf.append(f"\n*p{pg}*")
+                buf.append(f"\n*{disp(pg)}*")
                 last_page = pg
             if role == "def":
                 txt = f"**{txt}**"
@@ -564,7 +584,14 @@ def main():
                    {p: body_chars_of(lines, p) for p in range(1, meta["page_count"] + 1)},
                    {p: page_chars(p) for p in sel}, cov, sel_chars)
     doc.save(out, garbage=3, deflate=True)
+    with open(os.path.join(a.work, "output.json"), "w") as f:
+        json.dump({"pdf": os.path.abspath(out), "page_offset": offset,
+                   "labels": {str(k): v for k, v in labels.items() if v}}, f)
     print(f"\nwrote {out}  ({n_annot} annotations on {len(sel)} pages)")
+    if offset:
+        print(f"  reader page numbers run {offset} ahead of the extraction ids "
+              f"(the legend page sits in front); quiz.py and the digest translate "
+              f"automatically")
 
 
 if __name__ == "__main__":

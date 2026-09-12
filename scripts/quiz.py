@@ -54,6 +54,31 @@ def parse(path):
     return meta, questions
 
 
+def page_map(quizpath, work=None):
+    """Translate extraction ids into what the reader's viewer shows."""
+    info = {}
+    for base in filter(None, [work, os.path.dirname(os.path.abspath(quizpath)),
+                              os.path.join(os.path.dirname(os.path.abspath(quizpath)), "..")]):
+        cand = os.path.join(base, "output.json")
+        if os.path.exists(cand):
+            info = json.load(open(cand))
+            break
+    return info.get("page_offset", 1), info.get("labels", {})
+
+
+def render(text, offset, labels):
+    """p18:35-40 -> 'page 19 (book p.12)'. Line ids are authoring coordinates;
+    a reader never sees them, so they are dropped."""
+    def one(m):
+        pg = int(m.group(1))
+        out = f"page {pg + offset}"
+        lab = labels.get(str(pg))
+        if lab and lab != str(pg + offset):
+            out += f" (book p.{lab})"
+        return out
+    return ANCHOR.sub(one, text)
+
+
 def anchors(q):
     return [(int(p), int(a) if a else None, int(b) if b else (int(a) if a else None))
             for p, a, b in ANCHOR.findall(q.get("if wrong, re-read", ""))]
@@ -197,8 +222,9 @@ def cmd_ask(a):
 
 def cmd_key(a):
     q = _get(a)
+    offset, labels = page_map(a.quiz, a.work)
     print(f"Look for: {q['look for']}")
-    print(f"Re-read:  {q['if wrong, re-read']}")
+    print(f"Re-read:  {render(q['if wrong, re-read'], offset, labels)}")
     print(f"In the highlights: {q.get('covered by highlights')}")
 
 
@@ -239,6 +265,7 @@ def main():
     k = sub.add_parser("ask"); k.add_argument("quiz"); k.add_argument("n", type=int)
     k.set_defaults(fn=cmd_ask)
     y = sub.add_parser("key"); y.add_argument("quiz"); y.add_argument("n", type=int)
+    y.add_argument("--work", help="work dir holding output.json (page translation)")
     y.set_defaults(fn=cmd_key)
     r = sub.add_parser("record"); r.add_argument("quiz"); r.add_argument("n", type=int)
     r.add_argument("result", choices=["right", "wrong"]); r.add_argument("--note")
