@@ -171,6 +171,32 @@ entries are the author saying what matters; for each one, highlight the clause t
 says what it *means*. The audit lists flagged terms with no nearby highlight naming
 them — treat that as a checklist, not a verdict.
 
+**Keep the fact, cut the frame.** "In Chapter 9, we will have a close look at
+linear regression, where our objective is to find functions that map inputs to
+observed values" carries its content in the second half. Framing verbs — *we will
+have a close look at*, *we now come to the crux of*, *we use the phrase X to
+mean* — and evaluative second sentences (*extremely useful*, *requires special
+care*) are free to cut. On a bloated selection this is 20-30% of the characters
+and costs nothing.
+
+**Going over budget is a symptom: cut framing before you cut facts.** The failure
+mode after a completeness fix is padding — keeping whole sentences for the one
+clause that mattered. Re-read each span asking which half you would defend.
+
+**The book's thesis is content, not motivation.** One passage usually says what
+the subject buys you — what you can build, debug, or judge once you know it.
+That is the exception to "motivation: take nothing," and it is easy to miss:
+three consecutive passes over this book's chapter 1 dropped it.
+
+**The label-and-reason rule runs both ways.** Keeping "quantification of
+uncertainty is the realm of probability theory" while dropping the sentence about
+signal and noise is the more common error, and it leaves a dictionary entry that
+teaches nothing.
+
+**`~` is not a parking lot.** Supporting means a confident reader may skip it, not
+that you could not bring yourself to cut it. If it is only there because dropping
+it felt lossy, drop it.
+
 **A chapter number is not information.** Never keep a sentence whose only new
 content is "in Chapter N we introduce X" — but do keep it when the same sentence
 also names the method (PCA, Gaussian mixtures, maximum likelihood). Strip the

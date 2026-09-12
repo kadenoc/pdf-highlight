@@ -472,11 +472,26 @@ def main():
         buf = [f"# {meta['title']} — essential reading",
                f"\n{sel_lines} lines, {sel_chars} chars, {100*cov:.1f}% of the book. "
                f"`**bold**` = key definition/result, `>` = context.\n"]
-        last_page = None
+        # A heading belongs to the lines after it, not to the whole page: a page
+        # holding a section break would otherwise file the preceding section's
+        # text under the new heading.
+        headline = {}
+        for e in meta["toc"]:
+            recs = lines.get(str(e["page"]))
+            if not recs:
+                continue
+            want = re.sub(r"[^a-z0-9]", "", e["title"].lower())[:18]
+            for idx, r in enumerate(recs):
+                got = re.sub(r"[^a-z0-9]", "", r["t"].lower())
+                if want and len(want) > 4 and (got.startswith(want) or want in got):
+                    headline[e["page"]] = idx
+                    break
+        last_page, headed = None, set()
         for pg, i, txt, role, weight, note in paragraphs(sel, lines):
+            if pg in tocmap and pg not in headed and i >= headline.get(pg, 0):
+                buf.append(f"\n## {tocmap[pg]}")
+                headed.add(pg)
             if pg != last_page:
-                if pg in tocmap:
-                    buf.append(f"\n## {tocmap[pg]}")
                 buf.append(f"\n*p{pg}*")
                 last_page = pg
             if role == "def":
