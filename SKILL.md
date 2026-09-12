@@ -9,8 +9,13 @@ Turn a PDF into (1) a highlighted PDF and (2) `highlights.md`, a linear digest o
 just the highlighted text. Target: **a reader who reads only the highlights can
 restate every claim and apply every technique in the book.**
 
-Highlighting is compression. Value comes from what you leave out. A book with 60%
-highlighted is worth nothing; the aim is 15-30%.
+Highlighting is compression. Value comes from what you leave out — a book with 60%
+highlighted is worth nothing. How much to keep depends on what a section is doing;
+see the budget bands below.
+
+The work is not done when the highlights are applied. A blind review round is part
+of the job, not an optional extra: the person who chose the highlights is the one
+person who cannot see what they fail to convey.
 
 ## Pipeline
 
@@ -29,6 +34,9 @@ cat $W/meta.json | python3 -m json.tool | head -60   # TOC, chunk list, page cou
 $S/highlight.py --work $W --spec $W/sel.txt --dry-run          # 3. check coverage
 $S/highlight.py --work $W --spec $W/sel.txt \
     --out BOOK-highlighted.pdf --plan highlights.md            # 4. apply
+$S/review_pack.py --work $W --spec $W/sel.txt \
+    --pages 17-22 --out $W/review/s1                # 5. blind review (always)
+# 6. fix what the review confirms, then re-run step 3 and step 4
 ```
 
 Scripts self-install PyMuPDF via `uv run` — no setup. `highlight.py` always
@@ -298,6 +306,65 @@ whose premise you cut, a pronoun with no antecedent, a formula whose variables
 were introduced in a line you dropped. Patch those ids into the spec and re-apply.
 This pass is what separates a real digest from a keyword sweep — do not skip it.
 
+## Review before you ship
+
+**Run this by default, on every book.** Selection quality is invisible from the
+inside: the person who chose the highlights cannot tell what the highlights fail
+to convey. A blind reader can, immediately.
+
+**Sample two or three sections — never the whole book.** Choose ones that differ
+in kind: the densest chunk, whichever chunk the audit flags worst, and an
+introduction or narrative chapter if there is one. Defects repeat across a book,
+so a sample finds them.
+
+Build each pack, which slices the digest and the source for those pages and prints
+the honestly measured coverage:
+
+```bash
+$S/review_pack.py --work $W --spec $W/sel.txt --pages 104-126 --out $W/review/s1
+```
+
+Then dispatch **two independent subagents per section**, each with
+`references/review-prompt.md` filled in, and with no knowledge of how the
+selection was made. Two matters: one reviewer's taste is not a measurement.
+
+### Act on defects, not on taste
+
+Fix without arguing — these are verifiable against the page:
+
+- a term used in the digest but never defined there
+- a theorem hypothesis or condition of applicability that was dropped
+- a span that starts mid-argument, its antecedent unhighlighted
+- a procedure missing the step that makes it executable
+- a named chapter or section absent from an otherwise complete map
+- an asymmetry: uniqueness kept for one decomposition and not its sibling
+- text corruption, or a heading with the wrong content under it
+
+Treat as advisory — act only if **both** reviewers raise it:
+
+- whether a particular motivational or intuition passage earns its place
+- whether an example illustrates or merely repeats
+- how much of a roadmap is worth keeping
+
+When two reviewers disagree on one of these, keep your original call and say so in
+the report. Flip-flopping to satisfy the current reviewer is how a selection gets
+worse.
+
+### One round, and stop
+
+Run a second round only if the first found a **blocking** defect: a whole section
+unhighlighted, corrupted text, or a technique left inexecutable. Otherwise fix the
+confirmed defects, re-run `--dry-run` for a clean audit, and ship.
+
+**Do not iterate to raise a score.** A fresh judge each round rates prose
+differently, so the number oscillates while you re-litigate taste. Four rounds on
+one introduction chapter went 3 → 5 → 5 → 4, with reviewers directly contradicting
+each other on three passages: one called a passage "the thesis of the chapter,
+100% unhighlighted", the next called the same passage "motivational
+throat-clearing". Reviews are strongest where the answer is checkable — a dropped
+hypothesis, an undefined term, an inexecutable procedure — and weakest on what
+counts as essential prose. Spend the rounds where something is definitely wrong.
+
 ## Report to the user
 
 The output PDF opens on a generated **reading map**: the colour legend, the
@@ -308,6 +375,10 @@ one ahead of the original — say so.
 Give them: output PDF path, `highlights.md` path, coverage % and what it means in
 reading time, the colour legend, and anything you deliberately excluded
 (exercises, appendices, chapters they scoped out).
+
+Say what the review found: which sections were reviewed, what was fixed as a
+result, and any advisory disagreement you chose not to act on. If you shipped with
+a known gap, name it.
 
 ## Failure modes
 
