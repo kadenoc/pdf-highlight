@@ -1,12 +1,13 @@
 ---
 name: pdf-highlight
-description: Read a PDF (textbook, paper, report, manual) and produce a highlighted copy marking only the content a reader must actually read to digest it, plus a highlights-only markdown digest. Use when asked to highlight a PDF, mark up a textbook, find the essential/important parts of a document, condense a book into what matters, or build a reading plan from a PDF.
+description: Read a PDF (textbook, paper, report, manual) and produce a highlighted copy marking only the content a reader must actually read to digest it, a highlights-only markdown digest, and a quiz per chapter. Use when asked to highlight a PDF, mark up a textbook, find the essential parts of a document, condense a book into what matters, or build a reading plan from a PDF - and when asked to run, grade or continue a chapter quiz generated this way (quizzes/ch*.md).
 ---
 
 # PDF essential-content highlighter
 
-Turn a PDF into (1) a highlighted PDF and (2) `highlights.md`, a linear digest of
-just the highlighted text. Target: **a reader who reads only the highlights can
+Turn a PDF into (1) a highlighted PDF, (2) `highlights.md`, a linear digest of
+just the highlighted text, and (3) a quiz per chapter that checks whether reading
+it worked. Target: **a reader who reads only the highlights can
 restate every claim and apply every technique in the book.**
 
 Highlighting is compression. Value comes from what you leave out — a book with 60%
@@ -275,8 +276,10 @@ optimize for full comprehension of the whole book.
 For >6 chunks, dispatch chunk-level subagents in parallel (5-8 at a time). Give
 each one: the chunk path, this file's "What to select" section, its budget, the
 book's subject and the running glossary of terms already defined. Require it to
-**write `$W/sel/chunk-NNN.txt` and return only the path + line count + a 5-line
-summary of what that chunk covers** — never the selection text itself.
+**write `$W/sel/chunk-NNN.txt`, write the quiz for the chapter its chunk covers,
+and return only the paths + line count + a 5-line summary** — never the selection
+text itself. The agent that just read the
+chapter closely is the right one to write its quiz.
 
 Read the first chunk yourself before dispatching any: it sets the book's voice,
 notation, and density, and you need it to brief the others. Feed each round's
@@ -364,6 +367,109 @@ each other on three passages: one called a passage "the thesis of the chapter,
 throat-clearing". Reviews are strongest where the answer is checkable — a dropped
 hypothesis, an undefined term, an inexecutable procedure — and weakest on what
 counts as essential prose. Spend the rounds where something is definitely wrong.
+
+## Chapter quizzes
+
+Highlighting tells a reader what to read; a quiz tells them whether it landed.
+Write one per chapter, while the chapter is still fresh from selecting it — you
+have just read it closely, and you will never be better placed to know what a
+reader should walk away with.
+
+Quizzes live beside the outputs, not in the work dir: `quizzes/ch01.md`, one file
+per chapter, plus `results.md` that the runner appends to.
+
+### Authoring
+
+Write questions from **the whole chapter**, then mark each one for whether the
+highlights answer it. That single field turns the quiz into a second check on the
+selection: a question that a reader of the highlights cannot answer is either out
+of scope for the digest or a hole in it, and `validate` prints the list.
+
+```
+## Q4
+**Ask:** Training optimizes a model's parameters - with respect to what, exactly?
+**Look for:** a utility function, that is a performance measure evaluating how
+  well the model predicts the training data
+**Covered by highlights:** yes
+**If wrong, re-read:** p18:46-48
+```
+
+Every question carries a **Type**, and the mix is what stops a quiz being a
+word-matching drill:
+
+| Type | Asks for |
+|---|---|
+| `definition` | what a term means — at most one or two per chapter |
+| `application` | a case the book does not contain, decided with the book's ideas |
+| `contrast` | two things the reader must separate, usually pages apart |
+| `consequence` | what follows from a claim, or what breaks without it |
+| `navigation` | how the book is organised — at most two, and never the bulk |
+
+At least half should be `application`, `contrast` or `consequence`. A blind tester
+scored 7/8 on an earlier draft of this chapter's quiz and reported the pass was
+worthless: five questions could be answered by matching words against the digest,
+and six tested the table of contents rather than the subject.
+
+### Rules that came from that test
+
+**Never grade on a name, citation or figure number the highlights do not show.**
+The draft demanded "Mitchell's criterion" while the highlights carried the idea
+without the attribution — the reader is marked down for text they were told not to
+read. `validate` now rejects this.
+
+**Kill any question whose answer sits inside one highlighted sentence.** It tests
+word-matching. If the chapter really does settle the point in one sentence, ask
+something else: `validate` flags these.
+
+**Prefer questions that need two passages joined.** The cheapest way to turn recall
+into reasoning, and it is exactly what a digest reader should be able to do.
+
+**One question, one demand.** "Name three concepts and say what each refers to" is
+six gradeable facts with no stated depth; nobody can grade it consistently.
+
+**Write `Look for` as lettered clauses with a pass bar** — `(a) …; (b) …; both
+required` — so a differently-worded but correct answer passes and a half-answer
+does not.
+
+**Make the stem name the axis of the answer.** "What does the book say about
+whether that works" pointed at two different passages, only one of which the key
+accepted. "…about reading chapters out of order" excludes the wrong one without
+giving the answer away.
+
+**Write the re-read pointer per clause, labelled, and check it settles the
+question.** `p21:34-42 for dimensionality reduction; p21:43-49 for density
+estimation` is the model: the reader knows which half of their answer each range
+repairs. A pointer aimed at text that does not settle the question is a failure
+however precise its line numbers.
+
+Then check it:
+
+```bash
+$S/quiz.py validate quizzes/ch01.md --work $W --spec $W/sel.txt
+```
+
+It rejects missing fields, page or line anchors that do not resolve, yes/no
+questions, `Look for` text too thin to grade against, and a `Covered by
+highlights: yes` claim where none of the cited lines are actually highlighted.
+
+### Running
+
+The reader asks to run a chapter's quiz. Put **one question at a time**:
+
+```bash
+$S/quiz.py ask quizzes/ch01.md 1      # question only
+$S/quiz.py key quizzes/ch01.md 1      # after they answer: expected answer + pointer
+$S/quiz.py record quizzes/ch01.md 1 wrong --note "missed the utility function"
+```
+
+`ask` and `key` are separate for a reason: never read the quiz file wholesale
+before running it. The expected answers would enter the transcript above the
+questions, and the reader would be reading the answers as they are asked.
+
+Grade on substance, not phrasing — `Look for` is a rubric of the points that must
+appear, not a target string. When they miss, give the re-read pointer and move on;
+do not lecture. `quiz.py due quizzes/` lists questions missed and not yet
+re-passed, which is where a later session should start.
 
 ## Report to the user
 
